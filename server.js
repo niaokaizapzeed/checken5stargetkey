@@ -232,6 +232,19 @@ app.get('/api/config', (_req, res) => {
   res.json({ turnstile: { enabled: TURNSTILE_ENABLED, siteKey: TURNSTILE_SITE_KEY } });
 });
 
+// Current progress for this session (used by URL-based checkpoint pages)
+app.get('/api/progress', (req, res) => {
+  const prog = verify(req.cookies.cp_progress);
+  if (!prog || prog.t !== 'progress') return res.status(401).json({ error: 'no_session' });
+  const c = claimed[prog.sid];
+  res.json({
+    ok: true,
+    current: prog.cp,
+    total: TOTAL_CHECKPOINTS,
+    claimed: c ? { program: c.program, programName: (programById(c.program) || {}).name || c.program, key: c.key } : null,
+  });
+});
+
 // Public program list + per-program remaining count (used by the picker)
 app.get('/api/programs', (_req, res) => {
   res.json({
