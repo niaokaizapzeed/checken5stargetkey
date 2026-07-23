@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex" />
+  <title>Vault Access — รับคีย์</title>
+
+  <!-- Ad-block probe: if a blocker eats this request, window.__adProbe stays undefined. -->
+  <script src="/ads.js"></script>
+
+  <!-- ==== ADSTERRA: Social Bar (passive, non-intrusive — recommended) ==== -->
+  <script src="https://pl30493768.effectivecpmnetwork.com/11/fe/0b/11fe0bd8c92fac7334c9ae7f3938f110.js"></script>
+
+  <!-- ==== ADSTERRA: Popunder (opens an extra ad tab on interaction) ====
+       ลบบรรทัดนี้ทิ้งได้ ถ้ารู้สึกว่ารบกวนผู้ใช้มากเกินไป -->
+  <script src="https://pl30493722.effectivecpmnetwork.com/91/94/b5/9194b5d4f205830326d1ee8e85771b8c.js"></script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <!-- ambient backdrop -->
+  <div class="aurora" aria-hidden="true"></div>
+
+  <!-- Honeypot (bots fill this; humans never see it) -->
+  <input type="text" id="hp-website" name="website" tabindex="-1" autocomplete="off"
+         style="position:absolute;left:-9999px;top:-9999px;opacity:0;height:0;width:0;" aria-hidden="true" />
+
+  <main class="stage">
+
+    <!-- 1. GATE: initial loading + ad-block check + optional Turnstile -->
+    <section id="gate" class="panel gate">
+      <div class="spinner" id="gate-spinner" aria-hidden="true"></div>
+      <p class="gate-text" id="gate-text">กำลังตรวจสอบการเชื่อมต่อ…</p>
+      <div id="turnstile-box" class="turnstile-box hidden"></div>
+    </section>
+
+    <!-- 2. BLOCKED: shown when an ad blocker is detected -->
+    <section id="blocked" class="panel blocked hidden">
+      <div class="lock-badge danger" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="1.8">
+          <rect x="4.5" y="10.5" width="15" height="10" rx="2"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/>
+          <line x1="4.5" y1="4.5" x2="19.5" y2="20.5" stroke-width="2"/>
+        </svg>
+      </div>
+      <h1>ตรวจพบตัวบล็อกโฆษณา</h1>
+      <p class="muted">เว็บนี้เปิดให้ใช้ฟรีโดยมีโฆษณาช่วยสนับสนุน กรุณา <b>ปิด Ad Blocker</b>
+         (เช่น AdBlock, uBlock, Brave Shields) สำหรับหน้านี้ แล้วรีเฟรช</p>
+      <button id="retry" class="btn btn-ghost">ฉันปิดแล้ว — ลองใหม่</button>
+    </section>
+
+    <!-- 3. APP: the checkpoint flow -->
+    <section id="app" class="panel app hidden">
+      <header class="app-head">
+        <div class="brand">
+          <span class="key-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8">
+              <circle cx="8" cy="8" r="4.2"/><path d="M11 11l8 8m-3-3 2.2-2.2M13.5 13.5l3 3"/>
+            </svg>
+          </span>
+          <span>VAULT&nbsp;ACCESS</span>
+        </div>
+        <div class="stock" id="stock" title="คีย์คงเหลือในสต็อก">คีย์คงเหลือ: <b id="stock-n">—</b></div>
+      </header>
+
+      <!-- progress tumblers -->
+      <div class="tumblers" id="tumblers" role="progressbar" aria-label="ความคืบหน้า checkpoint"></div>
+
+      <!-- checkpoint card -->
+      <div id="cp-card" class="card">
+        <div class="cp-eyebrow">CHECKPOINT <span id="cp-num">1</span> / <span id="cp-total">4</span></div>
+        <h2 id="cp-title">เริ่มด่านแรก</h2>
+        <p id="cp-desc" class="muted">กดปุ่มเพื่อไปยังหน้าโฆษณา อยู่ให้ครบเวลาที่กำหนด แล้วกลับมายืนยัน</p>
+
+        <button id="go" class="btn btn-primary">
+          <span class="btn-label">ไปยัง Checkpoint <span class="cp-inline">1</span></span>
+        </button>
+
+        <!-- verify state (hidden until user opens the ad) -->
+        <div id="verify-wrap" class="verify hidden">
+          <div class="ring" id="ring">
+            <svg viewBox="0 0 120 120" aria-hidden="true">
+              <circle class="ring-bg" cx="60" cy="60" r="52"/>
+              <circle class="ring-fg" id="ring-fg" cx="60" cy="60" r="52"/>
+            </svg>
+            <div class="ring-num" id="ring-num">15</div>
+          </div>
+          <button id="verify" class="btn btn-primary" disabled>
+            <span class="btn-label">ยืนยัน Checkpoint</span>
+          </button>
+          <p class="hint muted">กรุณารอให้ครบเวลาหลังจากกลับมาจากหน้าโฆษณา</p>
+        </div>
+
+        <p id="cp-error" class="error hidden"></p>
+      </div>
+
+      <!-- program picker (shown after the final checkpoint) -->
+      <div id="picker-card" class="card hidden">
+        <div class="cp-eyebrow">ปลดล็อกครบทุกด่านแล้ว</div>
+        <h2>เลือกโปรแกรมที่ต้องการ</h2>
+        <p class="muted">เลือก 1 โปรแกรมเพื่อรับคีย์</p>
+        <div id="program-list" class="program-list"></div>
+        <p id="picker-error" class="error hidden"></p>
+      </div>
+
+      <!-- key reveal -->
+      <div id="key-card" class="card key-card hidden">
+        <div class="lock-badge success" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="1.8">
+            <rect x="4.5" y="10.5" width="15" height="10" rx="2"/><path d="M8 10.5V7a4 4 0 0 1 7.5-1.8"/>
+          </svg>
+        </div>
+        <h2>ปลดล็อกสำเร็จ</h2>
+        <p class="muted">คีย์สำหรับ <b id="key-program">—</b> · กดเพื่อคัดลอก</p>
+        <div class="key-box">
+          <code id="key-value">—</code>
+          <button id="copy" class="btn btn-ghost btn-copy">คัดลอก</button>
+        </div>
+        <p id="copied" class="copied hidden">คัดลอกแล้ว ✓</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- ==== ADSTERRA: Native Banner (visible ad slot — optional, ลบทั้ง block นี้ได้) ==== -->
+  <div class="ad-slot">
+    <script async="async" data-cfasync="false" src="https://pl30493723.effectivecpmnetwork.com/57e557fe9dd407cb7cfe5d8f3fb019fb/invoke.js"></script>
+    <div id="container-57e557fe9dd407cb7cfe5d8f3fb019fb"></div>
+  </div>
+
+  <footer class="foot muted">โฆษณาช่วยให้เว็บนี้เปิดให้ใช้ฟรี · ขอบคุณที่สนับสนุน</footer>
+
+  <script src="/app.js"></script>
+</body>
+</html>
