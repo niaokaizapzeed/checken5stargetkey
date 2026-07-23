@@ -366,6 +366,13 @@ app.post('/api/admin/reload', (req, res) => {
 // ---------------------------------------------------------------------------
 app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'] }));
 
+// Fallback: any other GET path (e.g. /checkpoint1, /checkpoint4) serves the app.
+// This does NOT let anyone skip — progress lives in a signed server cookie, so a
+// typed URL just lands the user on the page at their real checkpoint.
+app.get(/^\/(?!api\/).*/, (_req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
 app.listen(PORT, () => {
   console.log(`Checkpoint Key System running on :${PORT}`);
   console.log(`  checkpoints=${TOTAL_CHECKPOINTS}  cooldown=${CHECKPOINT_COOLDOWN}s  programs=${programs.length}  stock=${totalStock()}  adLinks=${ADSTERRA_LINKS.length}  turnstile=${TURNSTILE_ENABLED}`);
