@@ -1,4 +1,11 @@
-
+/* ============================================================================
+ * CHECKEN5STAR — key distribution platform
+ *   /            homepage (catalog: video + description + Get Key button)
+ *   /<slug>      product page (ads + checkpoint flow -> key)
+ *   /login       admin login (URL only, no link on site)
+ *   /admin       admin panel (manage site, categories, products, keys)
+ * Everything is configurable from the admin panel and stored in DATA_DIR.
+ * ==========================================================================*/
 require('dotenv').config();
 const express      = require('express');
 const helmet       = require('helmet');
